@@ -16,8 +16,6 @@ import (
 func InteractiveMode() {
 
 }
-
-func main() {
 /* 
 	generates private key
 	generates encrypted value and puts it into the home directory ~/.eev
@@ -41,8 +39,23 @@ func main() {
 	don't modify files for now but put generated private keys where use wants
 
 	on interactive mode with no parameters passed give user options on what to do
-	- generate private key
-	- encrypt value - by default using private key set in env variables
+	- generate private key (needed flags)
+		- path (to save private key and how to name it)
+		- key type (if is provided it means user wants to create private key - info for non interactive mode)
+		- key size (if is provided it means user wants to create private key - info for non interactive mode)
+		- passphrase - optional (before chosing algo for encryption)
+		- alg for encryption of private key - optional (if is provided then user is asked to provide passphrase in interactive input)
+
+	- encrypt value - by default using private key set in env variables (for non interactive mode it has to be specified what user wants to do - encrypt or decrypt)
+	- encrypt - flag: -encrypt=true
+		- value to encrypt
+		- path to private key or use env variable
+		- passphrase - optional if private key is encrypted (if not provided and private key is encrypted then use prompt)
+
+	- decrypt value - by default using private key set in env variables - flag: -decrypt=true
+		- value to decrypt
+		- path to private key or use env variable (tries to use env variable by default if not provided but if it doesn't exist prompt is used)
+		- passphrase - optional if private key is encrypted (if not provided and private key is encrypted then use prompt)
 	- decrypt value - in interactive mode user can choose if he wants to copy value to clipboard - if value in env variable is not set
 	- decrypting value can be done by providing value or name of env variable - give user option
 		- decrypt value
@@ -50,6 +63,11 @@ func main() {
 			- copy value to clipboard
 			- print output in terminal
 */	
+func main() {
+
+	// check flags regarding encrypting or decrypting value
+	// check if key type or key size is not empty
+	// else use interactive mode to define what is user intend
 
 	reader := bufio.NewReader(os.Stdin)
 
