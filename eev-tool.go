@@ -42,9 +42,13 @@ func InteractiveMode() {
 	- generate private key (needed flags)
 		- path (to save private key and how to name it)
 		- key type (if is provided it means user wants to create private key - info for non interactive mode)
+			-key_type or -type
 		- key size (if is provided it means user wants to create private key - info for non interactive mode)
+			-key_size or -size
 		- passphrase - optional (before chosing algo for encryption)
-		- alg for encryption of private key - optional (if is provided then user is asked to provide passphrase in interactive input)
+			-passphrase
+		- algorithm for encryption of private key - optional (if is provided then user is asked to provide passphrase in interactive input)
+			-enc_alg or -alg
 
 	- encrypt value - by default using private key set in env variables (for non interactive mode it has to be specified what user wants to do - encrypt or decrypt)
 	- encrypt - flag: -encrypt=true
@@ -52,7 +56,7 @@ func InteractiveMode() {
 		- path to private key or use env variable
 		- passphrase - optional if private key is encrypted (if not provided and private key is encrypted then use prompt)
 
-	- decrypt value - by default using private key set in env variables - flag: -decrypt=true
+	- decrypt value - by default using private key set in env variables - flag: -decrypt=true or just pass value
 		- value to decrypt
 		- path to private key or use env variable (tries to use env variable by default if not provided but if it doesn't exist prompt is used)
 		- passphrase - optional if private key is encrypted (if not provided and private key is encrypted then use prompt)
@@ -62,6 +66,15 @@ func InteractiveMode() {
 		- decrypt env variable
 			- copy value to clipboard
 			- print output in terminal
+
+	- all of the mentioned can be executed within one run of non interactive - maybe -env_decrypt -env_encrypt for environment variable 
+		- first by creating private key
+		- second by decrypting passed value or env variable - decrypts both values from env variable and passed using same key if passed
+		- third  by encrypting passed value or env variable - encrypts both values from env variable and passed using same key if passed
+	- info flag for non interactive mode which gives info about what happened during execution or returns output line by line
+		- for private key generates element in passed path returning 0 for given line or empty line
+		- for encrypted value outputs decrypted value in terminal
+		- for encrypting outputs encrypted value in terminal
 */	
 func main() {
 
