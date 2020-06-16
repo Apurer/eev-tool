@@ -81,6 +81,45 @@ func main() {
 	// check flags regarding encrypting or decrypting value
 	// check if key type or key size is not empty
 	// else use interactive mode to define what is user intend
+	// there is only one path flag and its for private key 
+
+	keytype := flag.String("type", "", "path to save private key")
+	keysize := flag.Int("size", 0, "size of pivate key in bits")
+	keypath := flag.String("path", "", "path to save private key") // check if path exists otherwise try to resolve via env variable
+	alg := flag.String("alg", "", "encryption algorithm with which private key is encrypted")
+	passphrase := flag.String("passphrase", "", "passphrase with which private key is encrypted")
+
+	decrypt := flag.String("decrypt", "", "value to be decrypted")
+	env_decrypt := flag.String("env_decrypt", "", "environment variable to be decrypted")
+
+	encrypt := flag.String("encrypt", "", "value to be encrypted")
+	env_encrypt := flag.String("env_encrypt", "", "environment variable to be encrypted")
+
+	flag.Parse()
+
+	if keytype != "" || keysize != 0 || alg != "" {
+		// creating private key
+		if keytype == "" {
+			// prompt
+		}
+
+		if keysize == 0 {
+			// prompt
+		}
+
+		if alg != "" && passphrase == "" {
+			// prompt
+		}
+		
+	}
+
+	if decrypt != "" || env_decrypt != "" {
+		// decrypting value
+	}
+
+	if encrypt != "" || env_encrypt != "" {
+		// encrypting value
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 
