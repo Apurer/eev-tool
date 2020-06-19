@@ -170,6 +170,12 @@ func main() {
 			log.Fatalf("Unknown private key encryption algorithm: %s.\n", alg)
 		}
 
+		for keypath == "" {
+			// prompt
+			fmt.Println("Please provide path for private key: ")
+			fmt.Fscan(reader, &keypath)
+		}
+
 		// generate key
 		privkey, err := privateKey.Generate(keyType, keysize)
 		err = privateKey.Write(keypath, privkey, passphrase, algorithm)
