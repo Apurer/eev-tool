@@ -1,13 +1,15 @@
 package main 
 
 import (
+	privateKey "github.com/Apurer/eev/privatekey"
 	"golang.org/x/crypto/ssh/terminal"
 	"runtime"
 	"syscall"
 	"strings"
 	"bufio"
 	"flag"
-    "fmt"
+	"fmt"
+	"log"
     "os"
 )
 
@@ -148,30 +150,29 @@ func main() {
 
 		switch keytype {
 		case "RSA":
-			keyType = "RSA PRIVATE KEY"
+			keyType = privateKey.RSA
 		case "ECDSA":
-			keyType = "ECDSA PRIVATE KEY"
+			keyType = privateKey.ECDSA
 		default:
-			// freebsd, openbsd,
-			// plan9, windows...
-			fmt.Printf("%s.\n", os)
+			log.Fatalf("Unknown private key type: %s.\n", keytype)
 		}
+
+		algorithm := privateKey.NoEncryptionAlgorithm
 
 		switch alg {
 		case "AES128":
-			fmt.Println("OS X.")
+			algorithm = privateKey.AES128
 		case "AES192":
-			fmt.Println("Linux.")
+			algorithm = privateKey.AES192
 		case "AES256":
-			fmt.Println("Linux.")
+			algorithm  = privateKey.AES256
 		default:
-			// freebsd, openbsd,
-			// plan9, windows...
-			fmt.Printf("%s.\n", os)
+			log.Fatalf("Unknown private key encryption algorithm: %s.\n", alg)
 		}
 
-
 		// generate key
+		privkey, err := privateKey.Generate(keyType, keysize)
+		err = privateKey.Write(keypath, privkey, passphrase, algorithm)
 	}
 
 	if decrypt != "" || env_decrypt != "" {
