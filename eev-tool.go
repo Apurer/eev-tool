@@ -78,6 +78,8 @@ func InteractiveMode() {
 */	
 func main() {
 
+	reader := bufio.NewReader(os.Stdin)
+
 	// check flags regarding encrypting or decrypting value
 	// check if key type or key size is not empty
 	// else use interactive mode to define what is user intend
@@ -99,25 +101,93 @@ func main() {
 
 	if keytype != "" || keysize != 0 || alg != "" {
 		// creating private key
-		if keytype == "" {
+		for !(keytype ==  "RSA" || keytype ==  "ECDSA") {
 			// prompt
+			fmt.Println("This is a list of private key types to choose from:")
+			fmt.Println("RSA")
+			fmt.Println("ECDSA")
+			fmt.Println("Please provide type of private key.")
+			fmt.Fscan(reader, &keytype)
 		}
 
-		if keysize == 0 {
+		for keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256)  {
 			// prompt
+			fmt.Println("This is a list of RSA private key sizes to choose from:")
+			fmt.Println("128")
+			fmt.Println("192")
+			fmt.Println("256")
+			fmt.Println("Please provide size of private key: ")
+			fmt.Fscan(reader, &keysize)
 		}
 
-		if alg != "" && passphrase == "" {
+		for keytype ==  "ECDSA" && !(keysize == 256) {
 			// prompt
+			fmt.Println("This is a list of ECDSA private key sizes to choose from:")
+			fmt.Println("256")
+			fmt.Println("Please provide size of private key.")
+			fmt.Fscan(reader, &keysize)
 		}
-		
+
+		for !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
+			// prompt
+			fmt.Println("This is a list of private key encryption algorithms to choose from:")
+			fmt.Println("AES128")
+			fmt.Println("AES192")
+			fmt.Println("AES256")
+			fmt.Println("Please provide correct algorithm for private key encryption.")
+			fmt.Fscan(reader, &alg)
+		}
+
+		for alg != "" && passphrase == "" {
+			// prompt
+			fmt.Println("Please provide passphrase for private key: ")
+			fmt.Fscan(reader, &passphrase)
+		}
+
+		var keyType string 
+
+		switch keytype {
+		case "RSA":
+			keyType = "RSA PRIVATE KEY"
+		case "ECDSA":
+			keyType = "ECDSA PRIVATE KEY"
+		default:
+			// freebsd, openbsd,
+			// plan9, windows...
+			fmt.Printf("%s.\n", os)
+		}
+
+		switch alg {
+		case "AES128":
+			fmt.Println("OS X.")
+		case "AES192":
+			fmt.Println("Linux.")
+		case "AES256":
+			fmt.Println("Linux.")
+		default:
+			// freebsd, openbsd,
+			// plan9, windows...
+			fmt.Printf("%s.\n", os)
+		}
+
+
+		// generate key
 	}
 
 	if decrypt != "" || env_decrypt != "" {
+		if keypath == "" {
+			keypath = os.Getenv(name)
+			for keypath == "" {
+				// prompt
+			}
+		}
+
+		// check if key is 
 		// decrypting value
 	}
 
 	if encrypt != "" || env_encrypt != "" {
+		keypath = os.Getenv(name)
 		// encrypting value
 	}
 
