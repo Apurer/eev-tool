@@ -3,6 +3,7 @@ package main
 import (
 	privateKey "github.com/Apurer/eev/privatekey"
 	"golang.org/x/crypto/ssh/terminal"
+	"crypto/x509"
 	"runtime"
 	"syscall"
 	"strings"
@@ -155,15 +156,28 @@ func main() {
 		if !interactive && !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
 			log.Fatalf("Encryption algorithm: %s of private key does not fit available values.\nAvailable encryption algorithms:\nAES128\nAES192\nAES256", alg)
 		}
-
+		
 		for interactive && alg != "" && passphrase == "" {
 			// prompt
-			fmt.Println("Please provide passphrase for private key: ")
-			fmt.Fscan(reader, &passphrase)
+			fmt.Println("Provide passphrase for private key: ")
+			passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Fatal(err, " passphrase input error")
+			}
+			fmt.Println("Enter same passphrase again: ")
+			compare_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Fatal(err, " passphrase input error")
+			}
+			if !bytes.Equal(masterPwd, masterPwd2) {
+				log.Fatal("Passwords do not match. Try again.")
+			} else {
+				passphrase = string(passphrase_bytes)
+			}
 		}
 
 		if !interactive && alg != "" && passphrase == "" {
-			log.Fatal("Passphrase for private key encryption")
+			log.Fatal("Passphrase for private key encryption is empty")
 		}
 
 		var keyType string 
@@ -190,10 +204,14 @@ func main() {
 			log.Fatalf("Unknown private key encryption algorithm: %s.\n", alg)
 		}
 
-		for keypath == "" {
+		for interactive && keypath == "" {
 			// prompt
 			fmt.Println("Please provide path for private key: ")
 			fmt.Fscan(reader, &keypath)
+		}
+
+		if !interactive && keypath == "" {
+			log.Fatal("Path for private key encryption is empty")
 		}
 
 		// generate key
@@ -203,18 +221,64 @@ func main() {
 
 	if decrypt != "" || env_decrypt != "" {
 		if keypath == "" {
-			keypath = os.Getenv(name)
+			keypath = os.Getenv("EEV_privatekey")
 			for interactive && keypath == "" {
 				// prompt
 				fmt.Println("Please provide path for private key: ")
 				fmt.Fscan(reader, &keypath)
 			}
 
-			if keypath == "" {
+			if !interactive && keypath == "" {
 				log.Fatal("Path of private key not set")
 			}
 		}
 
+		privkey, err = ioutil.ReadFile(keypath)
+		if err != nil {
+			log.Fatal(err, " private key reading error")
+		}
+
+		block, _ := pem.Decode(privkey)
+		if interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+			// prompt
+			fmt.Println("Provide passphrase for private key: ")
+			passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Fatal(err, " passphrase input error")
+			}
+			fmt.Println("Enter same passphrase again: ")
+			compare_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Fatal(err, " passphrase input error")
+			}
+			if !bytes.Equal(masterPwd, masterPwd2) {
+				log.Fatal("Passwords do not match. Try again.")
+			} else {
+				passphrase = string(passphrase_bytes)
+			}
+		}
+
+		if !interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+			log.Fatal("Passphrase for private key decryption is empty")
+		}
+
+		if x509.IsEncryptedPEMBlock(block) {
+			block, _ := pem.Decode(privkey)
+			if block == nil {
+				log.Fatal("Decoded pem block is empty")
+			}
+			block.Bytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+			privkey = pem.EncodeToMemory(block)
+		}
+
+		if env_decrypt != "" {
+			decrypt = os.Getenv(env_decrypt)
+		}
+
+		if decrypt == "" {
+			fmt.Println("Provide value to be decr")
+			fmt.Fscan(reader, &decrypt)
+		}
 		// check if key is 
 		// decrypting value
 	}
