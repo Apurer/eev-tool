@@ -86,8 +86,8 @@ func main() {
 	// check if key type or key size is not empty
 	// else use interactive mode to define what is user intend
 	// there is only one path flag and its for private key 
-
-	keytype := flag.String("type", "", "path to save private key")
+	interactive := flag.Bool("interactive", true, "sets mode of running program")
+	keytype := flag.String("type", "", "type of private key")
 	keysize := flag.Int("size", 0, "size of pivate key in bits")
 	keypath := flag.String("path", "", "path to save private key") // check if path exists otherwise try to resolve via env variable
 	alg := flag.String("alg", "", "encryption algorithm with which private key is encrypted")
@@ -103,7 +103,7 @@ func main() {
 
 	if keytype != "" || keysize != 0 || alg != "" {
 		// creating private key
-		for !(keytype ==  "RSA" || keytype ==  "ECDSA") {
+		for interactive && !(keytype ==  "RSA" || keytype ==  "ECDSA") {
 			// prompt
 			fmt.Println("This is a list of private key types to choose from:")
 			fmt.Println("RSA")
@@ -112,7 +112,11 @@ func main() {
 			fmt.Fscan(reader, &keytype)
 		}
 
-		for keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256)  {
+		if !interactive && !(keytype ==  "RSA" || keytype ==  "ECDSA") {
+			log.Fatal("Type of private key does not fit available values.\nAvailable types:\nRSA\nECDSA")
+		}
+
+		for interactive && keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256)  {
 			// prompt
 			fmt.Println("This is a list of RSA private key sizes to choose from:")
 			fmt.Println("128")
@@ -122,7 +126,11 @@ func main() {
 			fmt.Fscan(reader, &keysize)
 		}
 
-		for keytype ==  "ECDSA" && !(keysize == 256) {
+		if !interactive && keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256) {
+			log.Fatalf("Size: %d of private key does not fit available values for RSA type.\nAvailable sizes for RSA:\n128\n192\n256\n", keysize)
+		}
+
+		for interactive && keytype ==  "ECDSA" && !(keysize == 256) {
 			// prompt
 			fmt.Println("This is a list of ECDSA private key sizes to choose from:")
 			fmt.Println("256")
@@ -130,7 +138,11 @@ func main() {
 			fmt.Fscan(reader, &keysize)
 		}
 
-		for !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
+		if !interactive && keytype ==  "ECDSA" && !(keysize == 256) {
+			log.Fatalf("Size: %d of private key does not fit available values for ECDSA type.\nAvailable sizes for ECDSA:\n256\n", keysize)
+		}
+
+		for interactive && !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
 			// prompt
 			fmt.Println("This is a list of private key encryption algorithms to choose from:")
 			fmt.Println("AES128")
@@ -140,10 +152,18 @@ func main() {
 			fmt.Fscan(reader, &alg)
 		}
 
-		for alg != "" && passphrase == "" {
+		if !interactive && !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
+			log.Fatalf("Encryption algorithm: %s of private key does not fit available values.\nAvailable encryption algorithms:\nAES128\nAES192\nAES256", alg)
+		}
+
+		for interactive && alg != "" && passphrase == "" {
 			// prompt
 			fmt.Println("Please provide passphrase for private key: ")
 			fmt.Fscan(reader, &passphrase)
+		}
+
+		if !interactive && alg != "" && passphrase == "" {
+			log.Fatal("Passphrase for private key encryption")
 		}
 
 		var keyType string 
@@ -184,8 +204,14 @@ func main() {
 	if decrypt != "" || env_decrypt != "" {
 		if keypath == "" {
 			keypath = os.Getenv(name)
-			for keypath == "" {
+			for interactive && keypath == "" {
 				// prompt
+				fmt.Println("Please provide path for private key: ")
+				fmt.Fscan(reader, &keypath)
+			}
+
+			if keypath == "" {
+				log.Fatal("Path of private key not set")
 			}
 		}
 
@@ -194,7 +220,14 @@ func main() {
 	}
 
 	if encrypt != "" || env_encrypt != "" {
-		keypath = os.Getenv(name)
+		if keypath == "" {
+			keypath = os.Getenv(name)
+			for keypath == "" &&  {
+				// prompt
+				fmt.Println("Please provide path for private key: ")
+				fmt.Fscan(reader, &keypath)
+			}
+		}
 		// encrypting value
 	}
 
