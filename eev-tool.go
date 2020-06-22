@@ -1,25 +1,26 @@
-package main 
+package main
 
 import (
-	privateKey "github.com/Apurer/eev/privatekey"
-	"golang.org/x/crypto/ssh/terminal"
-	AES "github.com/Apurer/eev/aes"
-	"encoding/pem"
-	"crypto/x509"
-	"io/ioutil"
-	"syscall"
-	"bytes"
 	"bufio"
+	"bytes"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
+	AES "github.com/Apurer/eev/aes"
+	privateKey "github.com/Apurer/eev/privatekey"
+	"golang.org/x/crypto/ssh/terminal"
+	"io/ioutil"
 	"log"
-    "os"
+	"os"
+	"syscall"
 )
 
-/* 
+/*
 	generates private key
 	generates encrypted value and puts it into the home directory ~/.eev
-	allows for decrypting environment variables 
+	allows for decrypting environment variables
 	tells about to which files to add or search help on github and about applying changes by running source command
 	copies values of decrypted env variables to the clipboard
 
@@ -31,7 +32,7 @@ import (
 	each step will get values and based on passed or not passed value it will continue in interactive or non interactive mode
 
 	maybe at start owkr only with bash_profile and env variables instead of creating directory
-	read set in env 
+	read set in env
 	by default copy to clipboard - instead of showing output
 	EEV_clipboard - boolean
 	EEV_privatekey - path to privatekey
@@ -67,7 +68,7 @@ import (
 			- copy value to clipboard
 			- print output in terminal
 
-	- all of the mentioned can be executed within one run of non interactive - maybe -env_decrypt -env_encrypt for environment variable 
+	- all of the mentioned can be executed within one run of non interactive - maybe -env_decrypt -env_encrypt for environment variable
 		- first by creating private key
 		- second by decrypting passed value or env variable - decrypts both values from env variable and passed using same key if passed
 		- third  by encrypting passed value or env variable - encrypts both values from env variable and passed using same key if passed
@@ -77,12 +78,12 @@ import (
 		- for encrypting outputs encrypted value in terminal
 */
 
-func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, passphrase string, interactive bool) (string, string) {
+func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, passphrase string, interactive bool) (string, string, error) {
 
 	reader := bufio.NewReader(os.Stdin)
 
 	// creating private key
-	for interactive && !(keytype ==  "RSA" || keytype ==  "ECDSA") {
+	for interactive && !(keytype == "RSA" || keytype == "ECDSA") {
 		// prompt
 		fmt.Println("This is a list of private key types to choose from:")
 		fmt.Println("RSA")
@@ -92,11 +93,11 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 
 	}
 
-	if !interactive && !(keytype ==  "RSA" || keytype ==  "ECDSA") {
-		log.Fatal("Type of private key does not fit available values.\nAvailable types:\nRSA\nECDSA")
+	if !interactive && !(keytype == "RSA" || keytype == "ECDSA") {
+		return keypath, passphrase, errors.New("type of private key does not fit available values.\nAvailable types:\nRSA\nECDSA")
 	}
 
-	for interactive && keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256)  {
+	for interactive && keytype == "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256) {
 		// prompt
 		fmt.Println("This is a list of RSA private key sizes to choose from:")
 		fmt.Println("128")
@@ -108,11 +109,11 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 		//keysize = keySize
 	}
 
-	if !interactive && keytype ==  "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256) {
-		log.Fatalf("Size: %d of private key does not fit available values for RSA type.\nAvailable sizes for RSA:\n128\n192\n256\n", keysize)
+	if !interactive && keytype == "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256) {
+		return keypath, passphrase, fmt.Errorf("size: %d of private key does not fit available values for ECDSA type.\nAvailable sizes for ECDSA:\n256\n", keysize)
 	}
 
-	for interactive && keytype ==  "ECDSA" && !(keysize == 256) {
+	for interactive && keytype == "ECDSA" && !(keysize == 256) {
 		// prompt
 		fmt.Println("This is a list of ECDSA private key sizes to choose from:")
 		fmt.Println("256")
@@ -120,8 +121,8 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 		fmt.Fscan(reader, &keysize)
 	}
 
-	if !interactive && keytype ==  "ECDSA" && !(keysize == 256) {
-		log.Fatalf("Size: %d of private key does not fit available values for ECDSA type.\nAvailable sizes for ECDSA:\n256\n", keysize)
+	if !interactive && keytype == "ECDSA" && !(keysize == 256) {
+		return keypath, passphrase, fmt.Errorf("size: %d of private key does not fit available values for ECDSA type.\nAvailable sizes for ECDSA:\n256\n", keysize)
 	}
 
 	for interactive && !(alg == "AES128" || alg == "AES192" || alg == "AES256" || alg == "") {
@@ -135,7 +136,7 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 	}
 
 	if !interactive && !(alg == "AES128" || alg == "AES192" || alg == "AES256") {
-		log.Fatalf("Encryption algorithm: %s of private key does not fit available values.\nAvailable encryption algorithms:\nAES128\nAES192\nAES256", alg)
+		return keypath, passphrase, fmt.Errorf("encryption algorithm: %s of private key does not fit available values.\nAvailable encryption algorithms:\nAES128\nAES192\nAES256", alg)
 	}
 
 	for interactive && alg != "" && passphrase == "" {
@@ -143,12 +144,12 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 		fmt.Println("Provide passphrase for private key: ")
 		passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
-			log.Fatal(err, ", passphrase input error")
+			return keypath, passphrase, fmt.Errorf("%s, passphrase input error", err.Error())
 		}
 		fmt.Println("Enter same passphrase again: ")
 		compare_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
-			log.Fatal(err, ", passphrase input error")
+			return keypath, passphrase, fmt.Errorf("%s, passphrase input error", err.Error())
 		}
 		if !bytes.Equal(passphrase_bytes, compare_bytes) {
 			fmt.Println("Passwords do not match. Try again.")
@@ -159,11 +160,10 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 	}
 
 	if !interactive && alg != "" && passphrase == "" {
-		log.Fatal("Passphrase for private key encryption is empty")
-
+		return keypath, passphrase, errors.New("passphrase for private key encryption is empty")
 	}
 
-	var keyType string 
+	var keyType string
 
 	switch keytype {
 	case "RSA":
@@ -171,7 +171,7 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 	case "ECDSA":
 		keyType = privateKey.ECDSA
 	default:
-		log.Fatalf("Unknown private key type: %s.\n", keytype)
+		return keypath, passphrase, fmt.Errorf("unknown private key type: %s", keytype)
 	}
 
 	var algorithm x509.PEMCipher
@@ -182,11 +182,11 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 	case "AES192":
 		algorithm = privateKey.AES192
 	case "AES256":
-		algorithm  = privateKey.AES256
+		algorithm = privateKey.AES256
 	case "":
 		algorithm = 0
 	default:
-		log.Fatalf("Unknown private key encryption algorithm: %s.\n", alg)
+		return keypath, passphrase, fmt.Errorf("unknown private key encryption algorithm: %s", alg)
 	}
 
 	for interactive && keypath == "" {
@@ -196,23 +196,23 @@ func CreatePrivateKey(keytype string, keysize int, keypath string, alg string, p
 	}
 
 	if !interactive && keypath == "" {
-		log.Fatal("Path for private key encryption is empty")
+		return keypath, passphrase, errors.New("path for private key encryption is empty")
 	}
 
 	// generate key
 	privkey, err := privateKey.Generate(keyType, keysize)
 	if err != nil {
-		log.Fatal(err, ", error while generating private key")
+		return keypath, passphrase, fmt.Errorf("%s, error while generating private key", err.Error())
 	}
 	err = privateKey.Write(keypath, privkey, passphrase, algorithm)
 	if err != nil {
-		log.Fatal(err, ", error while writing private key to file")
+		return keypath, passphrase, fmt.Errorf("%s, error while writing private key to file", err.Error())
 	}
 
-	return keypath, passphrase
+	return keypath, passphrase, nil
 }
 
-func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase string, interactive bool) (string, string) {
+func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase string, interactive bool) (string, string, error) {
 
 	reader := bufio.NewReader(os.Stdin)
 	if keypath == "" {
@@ -224,122 +224,125 @@ func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase stri
 		}
 
 		if !interactive && keypath == "" {
-			log.Fatal("Path of private key not set")
+			return keypath, passphrase, errors.New("path of private key not set")
 		}
 	}
 
-		privkey, err := ioutil.ReadFile(keypath)
+	privkey, err := ioutil.ReadFile(keypath)
+	if err != nil {
 		if err != nil {
-			log.Fatal(err, ", private key reading error")
+			return keypath, passphrase, fmt.Errorf("%s, private key reading error", err.Error())
+		}
+	}
+
+	block, _ := pem.Decode(privkey)
+	if interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+		// prompt
+		fmt.Println("Provide passphrase for private key: ")
+		passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return keypath, passphrase, fmt.Errorf("%s, passphrase input error", err.Error())
 		}
 
+		passphrase = string(passphrase_bytes)
+	}
+
+	if !interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+		return keypath, passphrase, errors.New("passphrase for private key decryption is empty")
+	}
+
+	if x509.IsEncryptedPEMBlock(block) {
 		block, _ := pem.Decode(privkey)
-		if interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
-			// prompt
-			fmt.Println("Provide passphrase for private key: ")
-			passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				log.Fatal(err, ", passphrase input error")
-			}
-
-			passphrase = string(passphrase_bytes)
+		if block == nil {
+			return keypath, passphrase, errors.New("decoded pem block is empty")
 		}
+		block.Bytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		privkey = pem.EncodeToMemory(block)
+	}
 
-		if !interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
-			log.Fatal("Passphrase for private key decryption is empty")
-		}
+	if env_decrypt != "" {
+		decrypt = os.Getenv(env_decrypt)
+	}
 
-		if x509.IsEncryptedPEMBlock(block) {
-			block, _ := pem.Decode(privkey)
-			if block == nil {
-				log.Fatal("Decoded pem block is empty")
-			}
-			block.Bytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
-			privkey = pem.EncodeToMemory(block)
-		}
+	if decrypt == "" {
+		fmt.Println("Provide value to be decrypted")
+		fmt.Fscan(reader, &decrypt)
+	}
+	// check if key is
+	// decrypting value
+	decrypted, err := AES.Decrypt(privkey, decrypt)
+	if err != nil {
+		return keypath, passphrase, fmt.Errorf("%s, error during decrypting value", err.Error())
+	}
 
-		if env_decrypt != "" {
-			decrypt = os.Getenv(env_decrypt)
-		}
+	fmt.Println(string(decrypted))
 
-		if decrypt == "" {
-			fmt.Println("Provide value to be decrypted")
-			fmt.Fscan(reader, &decrypt)
-		}
-		// check if key is 
-		// decrypting value
-		decrypted, err := AES.Decrypt(privkey, decrypt)
-		if err != nil {
-			log.Fatal(err, ", error during decrypting value")
-		}
-
-		fmt.Println(string(decrypted))
-
-		return keypath, passphrase 
+	return keypath, passphrase, nil
 }
 
-func Encrypt(encrypt string, env_encrypt string, keypath string, passphrase string, interactive bool){
+func Encrypt(encrypt string, env_encrypt string, keypath string, passphrase string, interactive bool) error {
 
 	reader := bufio.NewReader(os.Stdin)
 
 	if keypath == "" {
 		keypath = os.Getenv("EEV_privatekey")
-			for interactive && keypath == ""  {
-				fmt.Println("Please provide path for private key: ")
-				fmt.Fscan(reader, &keypath)
-			}
-
-			if !interactive && keypath == "" {
-				log.Fatal("Path of private key not set")
-			}
+		for interactive && keypath == "" {
+			fmt.Println("Please provide path for private key: ")
+			fmt.Fscan(reader, &keypath)
 		}
 
-		privkey, err := ioutil.ReadFile(keypath)
+		if !interactive && keypath == "" {
+			return errors.New("path of private key not set")
+		}
+	}
+
+	privkey, err := ioutil.ReadFile(keypath)
+	if err != nil {
+		return fmt.Errorf("%s, private key reading error", err.Error())
+	}
+
+	block, _ := pem.Decode(privkey)
+	if interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+		// prompt
+		fmt.Println("Provide passphrase for private key: ")
+		passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
-			log.Fatal(err, ", private key reading error")
+			return fmt.Errorf("%s, passphrase input error", err.Error())
 		}
 
+		passphrase = string(passphrase_bytes)
+	}
+
+	if !interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
+		return errors.New("passphrase for private key decryption is empty")
+	}
+
+	if x509.IsEncryptedPEMBlock(block) {
 		block, _ := pem.Decode(privkey)
-		if interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
-			// prompt
-			fmt.Println("Provide passphrase for private key: ")
-			passphrase_bytes, err := terminal.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				log.Fatal(err, ", passphrase input error")
-			}
-
-			passphrase = string(passphrase_bytes)
+		if block == nil {
+			return errors.New("decoded pem block is empty")
 		}
+		block.Bytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		privkey = pem.EncodeToMemory(block)
+	}
+	// encrypting value
 
-		if !interactive && x509.IsEncryptedPEMBlock(block) && passphrase == "" {
-			log.Fatal("Passphrase for private key decryption is empty")
-		}
+	if env_encrypt != "" {
+		encrypt = os.Getenv(env_encrypt)
+	}
 
-		if x509.IsEncryptedPEMBlock(block) {
-			block, _ := pem.Decode(privkey)
-			if block == nil {
-				log.Fatal("Decoded pem block is empty")
-			}
-			block.Bytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
-			privkey = pem.EncodeToMemory(block)
-		}
-		// encrypting value
+	if encrypt == "" {
+		fmt.Println("Provide value to be decrypted")
+		fmt.Fscan(reader, &encrypt)
+	}
 
-		if env_encrypt != "" {
-			encrypt = os.Getenv(env_encrypt)
-		}
+	encrypted, err := AES.Encrypt(privkey, encrypt)
+	if err != nil {
+		return fmt.Errorf("%s, error during encrypting value", err.Error())
+	}
 
-		if encrypt == "" {
-			fmt.Println("Provide value to be decrypted")
-			fmt.Fscan(reader, &encrypt)
-		}
-
-		encrypted, err := AES.Encrypt(privkey, encrypt)
-		if err != nil {
-			log.Fatal(err, ", error during encrypting value")
-		}
-
-		fmt.Println(encrypted)
+	fmt.Println(encrypted)
+	return nil
 }
 
 func main() {
@@ -359,13 +362,24 @@ func main() {
 
 	flag.Parse()
 
+	var err error
+
 	if *keytype != "" || *keysize != 0 || *alg != "" {
-		*keypath, *passphrase = CreatePrivateKey(*keytype, *keysize, *keypath, *alg, *passphrase, *interactive)
+		*keypath, *passphrase, err = CreatePrivateKey(*keytype, *keysize, *keypath, *alg, *passphrase, *interactive)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if *decrypt != "" || *env_decrypt != "" {
-		*keypath, *passphrase = Decrypt(*decrypt, *env_decrypt, *keypath, *passphrase, *interactive)
+		*keypath, *passphrase, err = Decrypt(*decrypt, *env_decrypt, *keypath, *passphrase, *interactive)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if *encrypt != "" || *env_encrypt != "" {
-		Encrypt(*encrypt, *env_encrypt, *keypath, *passphrase, *interactive)
+		err = Encrypt(*encrypt, *env_encrypt, *keypath, *passphrase, *interactive)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
