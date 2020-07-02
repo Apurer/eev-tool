@@ -1,20 +1,16 @@
 package aes
 
 import (
-	"bufio"
-	//"bytes"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
-	//"flag"
-	"fmt"
-	AES "github.com/Apurer/eev/aes"
-	//privateKey "github.com/Apurer/eev/privatekey"
 	"golang.org/x/crypto/ssh/terminal"
+	AES "github.com/Apurer/eev/aes"
+	"encoding/pem"
+	"crypto/x509"
 	"io/ioutil"
-	//"log"
-	"os"
 	"syscall"
+	"errors"
+	"bufio"
+	"fmt"
+	"os"
 )
 
 func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase string, interactive bool) (string, string, error) {
@@ -25,7 +21,11 @@ func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase stri
 		for interactive && keypath == "" {
 			// prompt
 			fmt.Println("Please provide path for private key: ")
-			fmt.Fscan(reader, &keypath)
+
+			scanner := bufio.NewScanner(os.Stdin)
+			if scanner.Scan() {
+				keypath = scanner.Text()
+			}
 		}
 
 		if !interactive && keypath == "" {
@@ -71,7 +71,11 @@ func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase stri
 
 	if decrypt == "" {
 		fmt.Println("Provide value to be decrypted")
-		fmt.Fscan(reader, &decrypt)
+
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			decrypt = scanner.Text()
+		}
 	}
 	// check if key is
 	// decrypting value
@@ -87,13 +91,15 @@ func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase stri
 
 func Encrypt(encrypt string, env_encrypt string, keypath string, passphrase string, interactive bool) error {
 
-	reader := bufio.NewReader(os.Stdin)
-
 	if keypath == "" {
 		keypath = os.Getenv("EEV_privatekey")
 		for interactive && keypath == "" {
 			fmt.Println("Please provide path for private key: ")
-			fmt.Fscan(reader, &keypath)
+
+			scanner := bufio.NewScanner(os.Stdin)
+			if scanner.Scan() {
+				keypath = scanner.Text()
+			}
 		}
 
 		if !interactive && keypath == "" {
@@ -138,7 +144,11 @@ func Encrypt(encrypt string, env_encrypt string, keypath string, passphrase stri
 
 	if encrypt == "" {
 		fmt.Println("Provide value to be decrypted")
-		fmt.Fscan(reader, &encrypt)
+
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			encrypt = scanner.Text()
+		}
 	}
 
 	encrypted, err := AES.Encrypt(privkey, encrypt)

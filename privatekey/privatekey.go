@@ -1,20 +1,15 @@
 package privatekey
 
 import (
-	"bufio"
-	"bytes"
-	"crypto/x509"
-	//"encoding/pem"
-	"errors"
-	//"flag"
-	"fmt"
-	//AES "github.com/Apurer/eev/aes"
 	privateKey "github.com/Apurer/eev/privatekey"
 	"golang.org/x/crypto/ssh/terminal"
-	//"io/ioutil"
-	//"log"
-	"os"
+	"crypto/x509"
 	"syscall"
+	"errors"
+	"bytes"
+	"bufio"
+	"fmt"
+	"os"
 )
 
 func Create(keytype string, keysize int, keypath string, alg string, passphrase string, interactive bool) (string, string, error) {
@@ -43,9 +38,8 @@ func Create(keytype string, keysize int, keypath string, alg string, passphrase 
 		fmt.Println("192")
 		fmt.Println("256")
 		fmt.Println("Please provide size of private key: ")
-		//var keySize int
+
 		fmt.Fscan(reader, &keysize)
-		//keysize = keySize
 	}
 
 	if !interactive && keytype == "RSA" && !(keysize == 128 || keysize == 192 || keysize == 256) {
@@ -131,7 +125,11 @@ func Create(keytype string, keysize int, keypath string, alg string, passphrase 
 	for interactive && keypath == "" {
 		// prompt
 		fmt.Println("Please provide path for private key: ")
-		fmt.Fscan(reader, &keypath)
+
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			keypath = scanner.Text()
+		}
 	}
 
 	if !interactive && keypath == "" {

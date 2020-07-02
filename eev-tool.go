@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
-	"flag"
-	AES "github.com/Apurer/eev-tool/aes"
 	privateKey "github.com/Apurer/eev-tool/privatekey"
+	AES "github.com/Apurer/eev-tool/aes"
+	"flag"
+	"log"
 )
 
 /*
