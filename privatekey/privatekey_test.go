@@ -2,7 +2,6 @@ package privatekey
 
 import (
 	"testing"
-	privateKey "github.com/Apurer/eev/privatekey"
 	"fmt"
 )
 
@@ -15,7 +14,7 @@ func TestCreate(t *testing.T) {
 	for _, keytype := range keytypes {
 		for _, keysize := range keysizes {
 			for _, alg :=  range algs {
-				keypath := fmt.Sprintf("./%s%d%s", keytype, keysizes, alg) 
+				keypath := fmt.Sprintf("./%s%d%s", keytype, keysize, alg) 
 				Create(keytype, keysize, keypath, alg, passphrase, interactive)
 			}
 		}

@@ -15,7 +15,6 @@ import (
 
 func Decrypt(decrypt string, env_decrypt string, keypath string, passphrase string, interactive bool) (string, string, error) {
 
-	reader := bufio.NewReader(os.Stdin)
 	if keypath == "" {
 		keypath = os.Getenv("EEV_privatekey")
 		for interactive && keypath == "" {
